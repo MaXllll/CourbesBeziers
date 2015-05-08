@@ -34,12 +34,16 @@ int pas = 20;
 //Bezier
 std::vector<std::vector<Point>> beziers;
 
+//Spline
+std::vector<Point> splines;
+
 Window window;
 
 //Menu indentifier
 static int modify = 1;
 static int drawMode = 1;
 
+#pragma region Utils
 float calculateSlope(Point a, Point b)
 {
 	if (std::fabs(b.x_get() - a.x_get()) < 0.01){
@@ -59,10 +63,12 @@ float convertViewportToOpenGLCoordinate(float x)
 	return (x * 2) - 1;
 }
 
+#pragma endregion
 
-Point Decasteljau(int k, float t)
+#pragma region Bézier
+Point Decasteljau(float t, std::vector<Point> points)
 {
-	std::vector<Point> points = polygons[k].get_points();
+	//std::vector<Point> points = polygons[k].get_points();
 
 	std::vector<std::vector<Point>> arbre = std::vector<std::vector<Point>>();
 	arbre.push_back(points);
@@ -81,23 +87,102 @@ Point Decasteljau(int k, float t)
 	return arbre[points.size() - 1][0];
 }
 
-void CalculateBezier()
+std::vector<Point> CalculateBezier(std::vector<Point> polygon)
 {
-	for (int l = 0; l < polygons.size(); ++l)
+	std::vector<Point> bezierR = std::vector<Point>();
+	if (polygon.size() >= 3)
 	{
-		if (polygons[l].get_points().size() >= 3)
+		bezierR.push_back(polygon[0]);
+		for (int k = 1; k <= pas; ++k)
 		{
-			beziers[l].clear();
-			beziers[l].push_back(polygons[l].get_points()[0]);
-			for (int k = 1; k <= pas; ++k)
+			Point a = Decasteljau((float)k / (float)pas, polygon);
+			bezierR.push_back(a);
+		}
+	}
+	return bezierR;
+}
+
+#pragma endregion
+
+#pragma region Splines
+
+std::vector<float> modalVector;
+
+Point baryCentre(Point p1, Point p2, float k)
+{
+	float x = (1.f - k) * p1.x_get() + k * p2.x_get();
+	float y = (1.f - k) * p1.y_get() + k * p2.y_get();
+	return Point(x, y);
+
+}
+
+void CalculateSplines()
+{
+	modalVector = std::vector<float>();
+	modalVector.push_back((1.f / 3.f));
+	modalVector.push_back((1.f / 3.f));
+	modalVector.push_back((1.f / 3.f));
+
+	splines.clear();
+	if (polygons[0].get_points().size() > 3)
+	{
+		int size = polygons[0].get_points().size();
+		Point newBezierPoint = Point();
+		Point startBezier = Point();
+
+		for (size_t i = 1; i <= size - 3; i++)
+		{
+			Point p0 = polygons[0].get_points()[i];
+			Point p1 = polygons[0].get_points()[i + 1];
+			Point p2 = polygons[0].get_points()[i + 2];
+
+			std::vector<Point> controlPoints = std::vector<Point>();
+			if (i == 1)
 			{
-				std::cout << pas << std::endl;
-				Point a = Decasteljau(l, (float)k / (float)pas);
-				beziers[l].push_back(a);
+				controlPoints.push_back(polygons[0].get_points()[i - 1]);
+				Point r0p0 = baryCentre(p0, p1, modalVector[i]);
+				Point r0p1 = baryCentre(p1, p2, modalVector[i + 1]);
+				startBezier = baryCentre(r0p0, r0p1, modalVector[i]);
+				controlPoints.push_back(r0p0);
+				controlPoints.push_back(startBezier);
+				std::vector<Point> bezier = CalculateBezier(controlPoints);
+				splines.insert(splines.end(), bezier.begin(), bezier.end());
+
+				newBezierPoint = r0p1;
+			}
+			else {
+				controlPoints.push_back(startBezier);
+				Point r1p0 = baryCentre(p0, p1, 1 - modalVector[2]);
+				Point r0p1 = baryCentre(p1, p2, modalVector[0]);
+				startBezier = baryCentre(r1p0, r0p1, modalVector[0]);
+				controlPoints.push_back(newBezierPoint);
+				controlPoints.push_back(r1p0);
+				controlPoints.push_back(startBezier);
+
+				std::vector<Point> bezier = CalculateBezier(controlPoints);
+				splines.insert(splines.end(), bezier.begin(), bezier.end());
+
+				newBezierPoint = r0p1;
+			}
+
+			if (i == size - 3)
+			{
+				controlPoints.clear();
+				controlPoints.push_back(startBezier);
+				controlPoints.push_back(newBezierPoint);
+				controlPoints.push_back(p2);
+
+				std::vector<Point> bezier = CalculateBezier(controlPoints);
+				splines.insert(splines.end(), bezier.begin(), bezier.end());
 			}
 		}
 	}
+
+
 }
+
+
+#pragma endregion
 
 #pragma mark GLUT
 #pragma region GLUT
@@ -151,7 +236,7 @@ void keyPressed(unsigned char key, int x, int y)
 		//std::vector<CPolygon> p= windowing(polygons, window);
 		//polygons = p;
 
-		CalculateBezier();
+		//CalculateBezier();
 	}
 	else if (key == 'c')
 	{
@@ -165,11 +250,13 @@ void keyPressed(unsigned char key, int x, int y)
 	else if (key == 43)
 	{
 		pas += 1;
+		std::cout << pas << std::endl;
 	}
 	// -
 	else if (key == 45)
 	{
 		pas -= 1;
+		std::cout << pas << std::endl;
 	}
 }
 
@@ -198,17 +285,32 @@ void DrawPolygon()
 			glEnd();
 		}
 	}
-	glColor3d((float)(127.f / 255.f), (float)(48.f / 255.f), (float)(201.f / 255.f));
 
-	for (size_t i = 0; i < beziers.size(); ++i)
+	//Draw Bezier
+	//glColor3d((float)(127.f / 255.f), (float)(48.f / 255.f), (float)(201.f / 255.f));
+
+	//for (size_t i = 0; i < beziers.size(); ++i)
+	//{
+	//	glBegin(GL_LINE_STRIP);
+	//	for (size_t j = 0; j < beziers[i].size(); ++j)
+	//	{
+	//		glVertex2f(beziers[i][j].x_get(), beziers[i][j].y_get());
+	//	}
+	//	glEnd();
+	//}
+
+	//Draw Spline
+	glColor3d((float)(255.f / 255.f), (float)(94.f / 255.f), (float)(0.f / 255.f));
+
+	/*for (size_t i = 0; i < beziers.size(); ++i)
+	{*/
+	glBegin(GL_LINE_STRIP);
+	for (size_t j = 0; j < splines.size(); ++j)
 	{
-		glBegin(GL_LINE_STRIP);
-		for (size_t j = 0; j < beziers[i].size(); ++j)
-		{
-			glVertex2f(beziers[i][j].x_get(), beziers[i][j].y_get());
-		}
-		glEnd();
+		glVertex2f(splines[j].x_get(), splines[j].y_get());
 	}
+	glEnd();
+	//}
 }
 
 void selectDraw(int selection) {
@@ -261,7 +363,13 @@ void renderScene()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glClearColor(1, 1, 1, 1);
 
-	CalculateBezier();
+
+	for (int l = 0; l < polygons.size(); ++l)
+	{
+		beziers[l] = CalculateBezier(polygons[l].get_points());
+	}
+	CalculateSplines();
+
 	//    DrawPolygon(window.get_points());
 	DrawPolygon();
 
