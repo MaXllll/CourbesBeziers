@@ -43,6 +43,16 @@ Window window;
 static int modify = 1;
 static int drawMode = 1;
 
+
+// Color picker attributes
+#define WIDTH 750
+#define HEIGHT 750
+
+int i = 0, mousex, mousey;
+//current colors
+float pick[3];
+
+
 #pragma region Utils
 float calculateSlope(Point a, Point b)
 {
@@ -106,7 +116,7 @@ std::vector<Point> CalculateBezier(std::vector<Point> polygon)
 
 #pragma region Splines
 
-std::vector<float> modalVector;
+std::vector<float> nodalVector;
 
 Point baryCentre(Point p1, Point p2, float k)
 {
@@ -118,10 +128,10 @@ Point baryCentre(Point p1, Point p2, float k)
 
 void CalculateSplines()
 {
-	modalVector = std::vector<float>();
-	modalVector.push_back((1.f / 3.f));
-	modalVector.push_back((1.f / 3.f));
-	modalVector.push_back((1.f / 3.f));
+	nodalVector = std::vector<float>();
+	nodalVector.push_back((1.f / 3.f));
+	nodalVector.push_back((1.f / 3.f));
+	nodalVector.push_back((1.f / 3.f));
 
 	splines.clear();
 	if (polygons[0].get_points().size() > 3)
@@ -140,9 +150,9 @@ void CalculateSplines()
 			if (i == 1)
 			{
 				controlPoints.push_back(polygons[0].get_points()[i - 1]);
-				Point r0p0 = baryCentre(p0, p1, modalVector[i]);
-				Point r0p1 = baryCentre(p1, p2, modalVector[i + 1]);
-				startBezier = baryCentre(r0p0, r0p1, modalVector[i]);
+				Point r0p0 = baryCentre(p0, p1, nodalVector[i]);
+				Point r0p1 = baryCentre(p1, p2, nodalVector[i + 1]);
+				startBezier = baryCentre(r0p0, r0p1, nodalVector[i]);
 				controlPoints.push_back(p0);
 				controlPoints.push_back(r0p0);
 				controlPoints.push_back(startBezier);
@@ -153,9 +163,9 @@ void CalculateSplines()
 			}
 			else {
 				controlPoints.push_back(startBezier);
-				Point r1p0 = baryCentre(p0, p1, 1 - modalVector[2]);
-				Point r0p1 = baryCentre(p1, p2, modalVector[0]);
-				startBezier = baryCentre(r1p0, r0p1, modalVector[0]);
+				Point r1p0 = baryCentre(p0, p1, 1 - nodalVector[2]);
+				Point r0p1 = baryCentre(p1, p2, nodalVector[0]);
+				startBezier = baryCentre(r1p0, r0p1, nodalVector[0]);
 				controlPoints.push_back(newBezierPoint);
 				controlPoints.push_back(r1p0);
 				controlPoints.push_back(startBezier);
@@ -182,6 +192,99 @@ void CalculateSplines()
 
 }
 
+
+#pragma endregion
+
+#pragma region COLOR PICKER
+void hex(void){
+	glBegin(GL_POLYGON);
+	glColor3f(1, 0, 0);           //red
+	glVertex2f(0, 2);           //top
+	glColor3f(1, .38, .01);       //orange
+	glVertex2f(2, 1);           //top right
+	glColor3f(1, 1, 0);           //yellow
+	glVertex2f(2, -1);          //bottom right
+	glColor3f(0, 1, 0);           //green
+	glVertex2f(0, -2);          //bottom
+	glColor3f(0, 0, 1);           //blue
+	glVertex2f(-2, -1);         //bottom left
+	glColor3f(.8, 0, .8);         //purple
+	glVertex2f(-2, 1);          //top left
+	glEnd();
+}
+
+void square(void){
+	glBegin(GL_POLYGON);
+	glVertex2i(1, -1);
+	glVertex2i(1, 1);
+	glVertex2i(-1, 1);
+	glVertex2i(-1, -1);
+	glEnd();
+}
+
+void mouse(int button, int state, int x, int y){
+	// Save the mouse position
+	mousex = x;
+	mousey = y;
+
+	glReadPixels(mousex, mousey, 1, 1, GL_RGB, GL_FLOAT, &pick);
+	cout << pick[0] << "pick";
+	cout << " mouse x " << mousex << "\n";
+	cout << " mouse y " << mousey << "\n";
+	fflush(stdout);
+
+	cout << "pick R: " << pick[1] << "\n";
+	cout << "pick G: " << pick[0] << "\n";
+	cout << "pick B: " << pick[2] << "\n";
+	glutPostRedisplay();
+}
+
+
+
+void draw(void){
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	glPushMatrix();
+	glScalef(20, 20, 1);
+	hex();
+	glPopMatrix();
+
+	glPushMatrix();
+	glTranslatef(100, 100, 0);
+	glColor3f(pick[1], pick[0], pick[2]);
+	glScalef(20, 20, 1);
+	square();
+	glPopMatrix();
+
+	glFlush();
+
+}
+
+void my_init(void){
+	//glClearColor(0, 0, 0, 1);               //sets clear color
+	//glLineWidth(4);
+	gluOrtho2D(-100, 100, -100, 100);       //sets origin
+}
+void openWindow(){
+	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGBA);
+	glutInitWindowSize(WIDTH, HEIGHT);
+	glutCreateWindow("Color Picker");
+	glutDisplayFunc(draw);
+	glutMouseFunc(mouse);
+
+	my_init();
+
+	glClearColor(1, 1, 1, 0);
+
+	glutMainLoop();                         //listens for events
+}
+/*
+int main(int argc, char* argv[]){
+glutInit(&argc, argv);
+openWindow();
+openWindow();
+return 0;
+}*/
 
 #pragma endregion
 
@@ -228,6 +331,7 @@ void MouseButton(int button, int state, int x, int y)
 
 		}
 	}
+
 }
 
 void keyPressed(unsigned char key, int x, int y)
@@ -258,6 +362,9 @@ void keyPressed(unsigned char key, int x, int y)
 	{
 		pas -= 1;
 		std::cout << pas << std::endl;
+	}
+	else if (key == 'p'){
+		openWindow();
 	}
 }
 
@@ -301,8 +408,8 @@ void DrawPolygon()
 	}
 
 	//Draw Spline
-	glColor3d((float)(255.f / 255.f), (float)(94.f / 255.f), (float)(0.f / 255.f));
-
+	//glColor3d((float)(255.f / 255.f), (float)(94.f / 255.f), (float)(0.f / 255.f));
+	glColor3d(pick[1], pick[0], pick[2]);
 	/*for (size_t i = 0; i < beziers.size(); ++i)
 	{*/
 	glBegin(GL_LINE_STRIP);
@@ -351,30 +458,15 @@ void select(int selection) {
 	switch (selection)
 	{
 	case 3:
+		openWindow();
+		break;
+	case 4:
 		clearAll();
 		break;
 	case 0:
 		exit(0);
 	}
 	glutPostRedisplay();
-}
-
-void renderScene()
-{
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glClearColor(1, 1, 1, 1);
-
-
-	for (int l = 0; l < polygons.size(); ++l)
-	{
-		beziers[l] = CalculateBezier(polygons[l].get_points());
-	}
-	CalculateSplines();
-
-	//    DrawPolygon(window.get_points());
-	DrawPolygon();
-
-	glutSwapBuffers();
 }
 
 static GLfloat view_rotx = 20.0F;
@@ -396,6 +488,27 @@ static void special(int k, int x, int y) {
 }
 
 
+
+
+void renderScene()
+{
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClearColor(1, 1, 1, 1);
+
+
+	for (int l = 0; l < polygons.size(); ++l)
+	{
+		beziers[l] = CalculateBezier(polygons[l].get_points());
+	}
+	CalculateSplines();
+
+	//    DrawPolygon(window.get_points());
+	DrawPolygon();
+
+	glutSwapBuffers();
+}
+
+
 int main(int argc, char **argv) {
 
 	CPolygon p;
@@ -410,7 +523,6 @@ int main(int argc, char **argv) {
 	glutInitWindowSize(width, height);
 	glutCreateWindow("Projet Math - GLUT");
 	//glEnable(GL_LINE_SMOOTH);
-
 	// register callbacks
 	glutDisplayFunc(renderScene);
 	glutMouseFunc(MouseButton);
@@ -426,7 +538,8 @@ int main(int argc, char **argv) {
 	glutCreateMenu(select);
 	glutAddSubMenu("Draw", drawMenu);
 	glutAddSubMenu("Modify", modifyMenu);
-	glutAddMenuEntry("Clear", 3);
+	glutAddMenuEntry("Choose colors", 3);
+	glutAddMenuEntry("Clear", 4);
 	glutAddMenuEntry("Quitter", 0);
 	glutAttachMenu(GLUT_RIGHT_BUTTON);
 	//glutKeyboardFunc(key);
@@ -434,7 +547,9 @@ int main(int argc, char **argv) {
 
 	// enter GLUT event processing cycle
 	glutMainLoop();
+
 	return 1;
 }
-
 #pragma endregion
+
+
