@@ -143,6 +143,7 @@ void CalculateSplines()
 				Point r0p0 = baryCentre(p0, p1, modalVector[i]);
 				Point r0p1 = baryCentre(p1, p2, modalVector[i + 1]);
 				startBezier = baryCentre(r0p0, r0p1, modalVector[i]);
+				controlPoints.push_back(p0);
 				controlPoints.push_back(r0p0);
 				controlPoints.push_back(startBezier);
 				std::vector<Point> bezier = CalculateBezier(controlPoints);
@@ -287,17 +288,17 @@ void DrawPolygon()
 	}
 
 	//Draw Bezier
-	//glColor3d((float)(127.f / 255.f), (float)(48.f / 255.f), (float)(201.f / 255.f));
+	glColor3d((float)(127.f / 255.f), (float)(48.f / 255.f), (float)(201.f / 255.f));
 
-	//for (size_t i = 0; i < beziers.size(); ++i)
-	//{
-	//	glBegin(GL_LINE_STRIP);
-	//	for (size_t j = 0; j < beziers[i].size(); ++j)
-	//	{
-	//		glVertex2f(beziers[i][j].x_get(), beziers[i][j].y_get());
-	//	}
-	//	glEnd();
-	//}
+	for (size_t i = 0; i < beziers.size(); ++i)
+	{
+		glBegin(GL_LINE_STRIP);
+		for (size_t j = 0; j < beziers[i].size(); ++j)
+		{
+			glVertex2f(beziers[i][j].x_get(), beziers[i][j].y_get());
+		}
+		glEnd();
+	}
 
 	//Draw Spline
 	glColor3d((float)(255.f / 255.f), (float)(94.f / 255.f), (float)(0.f / 255.f));
