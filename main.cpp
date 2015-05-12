@@ -116,9 +116,9 @@ std::vector<Point> CalculateBezier(std::vector<Point> polygon)
 
 std::vector<float> nodalVector;
 
-std::vector<Point> splines;
+std::vector<std::vector<Point>> splines;
 
-std::vector<Point> controlPolygons;
+std::vector<std::vector<Point>> controlPolygons;
 
 Point baryCentre(Point p1, Point p2, float k)
 {
@@ -137,68 +137,75 @@ void CalculateSplines()
 
 	splines.clear();
 	controlPolygons.clear();
-	if (polygons[0].get_points().size() > 3)
-	{
-		int size = polygons[0].get_points().size();
-		Point newBezierPoint = Point();
-		Point startBezier = Point();
+	splines = std::vector<std::vector<Point>>();
 
-		for (size_t i = 1; i <= size - 3; i++)
+	for (size_t j= 0; j < polygons.size(); j++)
+	{ 
+		if (polygons[j].get_points().size() > 3)
 		{
-			Point p0 = polygons[0].get_points()[i];
-			Point p1 = polygons[0].get_points()[i + 1];
-			Point p2 = polygons[0].get_points()[i + 2];
+			int size = polygons[j].get_points().size();
+			Point newBezierPoint = Point();
+			Point startBezier = Point();
+			splines.push_back(std::vector<Point>());
+			controlPolygons.push_back(std::vector<Point>());
 
-			std::vector<Point> controlPoints = std::vector<Point>();
-			if (i == 1)
+			for (size_t i = 1; i <= size - 3; i++)
 			{
-				controlPoints.push_back(polygons[0].get_points()[i - 1]);
-				Point r0p0 = baryCentre(p0, p1, nodalVector[i]);
-				Point r0p1 = baryCentre(p1, p2, nodalVector[i + 1]);
-				startBezier = baryCentre(r0p0, r0p1, nodalVector[i]);
-				controlPoints.push_back(p0);
-				controlPoints.push_back(r0p0);
-				controlPoints.push_back(startBezier);
-				std::vector<Point> bezier = CalculateBezier(controlPoints);
-				splines.insert(splines.end(), bezier.begin(), bezier.end());
+				Point p0 = polygons[j].get_points()[i];
+				Point p1 = polygons[j].get_points()[i + 1];
+				Point p2 = polygons[j].get_points()[i + 2];
 
-				newBezierPoint = r0p1;
+				std::vector<Point> controlPoints = std::vector<Point>();
+				if (i == 1)
+				{
+					controlPoints.push_back(polygons[j].get_points()[i - 1]);
+					Point r0p0 = baryCentre(p0, p1, nodalVector[i]);
+					Point r0p1 = baryCentre(p1, p2, nodalVector[i + 1]);
+					startBezier = baryCentre(r0p0, r0p1, nodalVector[i]);
+					controlPoints.push_back(p0);
+					controlPoints.push_back(r0p0);
+					controlPoints.push_back(startBezier);
+					std::vector<Point> bezier = CalculateBezier(controlPoints);
+					splines[j].insert(splines[j].end(), bezier.begin(), bezier.end());
 
-				//Filling control points polygon
-				controlPolygons.push_back(r0p0);
-				controlPolygons.push_back(r0p1);
-			}
-			else {
-				controlPoints.push_back(startBezier);
-				Point r1p0 = baryCentre(p0, p1, 1 - nodalVector[2]);
-				Point r0p1 = baryCentre(p1, p2, nodalVector[0]);
-				startBezier = baryCentre(r1p0, r0p1, nodalVector[0]);
-				controlPoints.push_back(newBezierPoint);
-				controlPoints.push_back(r1p0);
-				controlPoints.push_back(startBezier);
+					newBezierPoint = r0p1;
 
-				std::vector<Point> bezier = CalculateBezier(controlPoints);
-				splines.insert(splines.end(), bezier.begin(), bezier.end());
+					//Filling control points polygon
+					controlPolygons[j].push_back(r0p0);
+					controlPolygons[j].push_back(r0p1);
+				}
+				else {
+					controlPoints.push_back(startBezier);
+					Point r1p0 = baryCentre(p0, p1, 1 - nodalVector[2]);
+					Point r0p1 = baryCentre(p1, p2, nodalVector[0]);
+					startBezier = baryCentre(r1p0, r0p1, nodalVector[0]);
+					controlPoints.push_back(newBezierPoint);
+					controlPoints.push_back(r1p0);
+					controlPoints.push_back(startBezier);
 
-				newBezierPoint = r0p1;
+					std::vector<Point> bezier = CalculateBezier(controlPoints);
+					splines[j].insert(splines[j].end(), bezier.begin(), bezier.end());
 
-				//Filling control points polygon
-				controlPolygons.push_back(r1p0);
-				controlPolygons.push_back(r0p1);
-			}
+					newBezierPoint = r0p1;
 
-			if (i == size - 3)
-			{
-				controlPoints.clear();
-				controlPoints.push_back(startBezier);
-				controlPoints.push_back(newBezierPoint);
-				controlPoints.push_back(p2);
+					//Filling control points polygon
+					controlPolygons[j].push_back(r1p0);
+					controlPolygons[j].push_back(r0p1);
+				}
 
-				std::vector<Point> bezier = CalculateBezier(controlPoints);
-				splines.insert(splines.end(), bezier.begin(), bezier.end());
+				if (i == size - 3)
+				{
+					controlPoints.clear();
+					controlPoints.push_back(startBezier);
+					controlPoints.push_back(newBezierPoint);
+					controlPoints.push_back(p2);
 
-				//Filling control points polygon
-				controlPolygons.push_back(newBezierPoint);
+					std::vector<Point> bezier = CalculateBezier(controlPoints);
+					splines[j].insert(splines[j].end(), bezier.begin(), bezier.end());
+
+					//Filling control points polygon
+					controlPolygons[j].push_back(newBezierPoint);
+				}
 			}
 		}
 	}
@@ -425,26 +432,27 @@ void DrawPolygon()
 	//Draw Spline
 	glColor3d((float)(255.f / 255.f), (float)(94.f / 255.f), (float)(0.f / 255.f));
 	glColor3d(pick[1], pick[0], pick[2]);
-	/*for (size_t i = 0; i < beziers.size(); ++i)
-	{*/
-	glBegin(GL_LINE_STRIP);
-	for (size_t j = 0; j < splines.size(); ++j)
+	for (size_t i = 0; i < splines.size(); ++i)
 	{
-		glVertex2f(splines[j].x_get(), splines[j].y_get());
+		glBegin(GL_LINE_STRIP);
+		for (size_t j = 0; j < splines[i].size(); ++j)
+		{
+			glVertex2f(splines[i][j].x_get(), splines[i][j].y_get());
+		}
+		glEnd();
 	}
-	glEnd();
-	//}
 
 	//Draw Control Polygons
-		glBegin(GL_LINE_STRIP);
-	for (size_t i = 0; i < controlPolygons.size(); i += 1)
+	for (size_t i = 0; i < splines.size(); ++i)
 	{
-		glVertex2f(controlPolygons[i].x_get(), controlPolygons[i].y_get());
-		//glVertex2f(controlPolygons[i+1].x_get(), controlPolygons[i+1].y_get());
-	}
+		glBegin(GL_LINE_STRIP);
+		for (size_t j = 0; j < controlPolygons[i].size(); j += 1)
+		{
+			glVertex2f(controlPolygons[i][j].x_get(), controlPolygons[i][j].y_get());
+		}
 		glEnd();
+	}
 
-	std::cout << controlPolygons.size() << std::endl;
 }
 
 void selectDraw(int selection) {
@@ -552,8 +560,7 @@ int main(int argc, char **argv) {
 	glutKeyboardFunc(keyPressed);
 
 	int drawMenu = glutCreateMenu(selectDraw);
-	glutAddMenuEntry("Bézier", 11);
-	glutAddMenuEntry("Window", 12);
+	glutAddMenuEntry("Bézier /Spline", 11);
 	int modifyMenu = glutCreateMenu(selectModify);
 	glutAddMenuEntry("Windowing", 1);
 	glutAddMenuEntry("Filling", 2);
