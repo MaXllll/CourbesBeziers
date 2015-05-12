@@ -87,21 +87,6 @@ float convertViewportToOpenGLCoordinate(float x)
 	return (x * 2) - 1;
 }
 
-Point translate(Point a, float diffX, float diffY)
-{
-	boost::numeric::ublas::matrix<float> translation = boost::numeric::ublas::identity_matrix<float>(3);
-	translation(0, 2) = diffX;
-	translation(1, 2) = diffY;
-
-	boost::numeric::ublas::matrix<float> point = boost::numeric::ublas::scalar_matrix<float>(3, 1);
-	point(0, 0) = a.x_get();
-	point(1, 0) = a.y_get();
-
-	boost::numeric::ublas::matrix<float> newPoint = boost::numeric::ublas::prod(translation, point);
-
-	return Point(newPoint(0, 0), newPoint(1, 0));
-}
-
 #pragma endregion
 
 #pragma region Bézier
@@ -247,6 +232,62 @@ void CalculateSplines()
 
 #pragma endregion
 
+#pragma region TRANSFORMATION
+
+Point translate(Point a, float diffX, float diffY)
+{
+	boost::numeric::ublas::matrix<float> translation = boost::numeric::ublas::identity_matrix<float>(3);
+	translation(0, 2) = diffX;
+	translation(1, 2) = diffY;
+
+	boost::numeric::ublas::matrix<float> point = boost::numeric::ublas::scalar_matrix<float>(3, 1);
+	point(0, 0) = a.x_get();
+	point(1, 0) = a.y_get();
+
+	boost::numeric::ublas::matrix<float> newPoint = boost::numeric::ublas::prod(translation, point);
+
+	return Point(newPoint(0, 0), newPoint(1, 0));
+}
+
+void TranslateAll(float x, float y){
+	for (int i = 0; i < polygons.size(); i++){
+		std::vector<Point> currentPoints = polygons[i].get_points();
+		for (int j = 0; j < polygons[i].get_points().size(); j++){
+			currentPoints[j] = translate(currentPoints[j], x, y);
+		}
+		polygons[i].set_points(currentPoints);
+	}
+
+}
+
+Point scale(Point a, float sX, float sY)
+{
+	boost::numeric::ublas::matrix<float> translation = boost::numeric::ublas::identity_matrix<float>(2);
+	translation(0, 0) = sX;
+	translation(1, 1) = sY;
+
+	boost::numeric::ublas::matrix<float> point = boost::numeric::ublas::scalar_matrix<float>(2, 1);
+	point(0, 0) = a.x_get();
+	point(1, 0) = a.y_get();
+
+	boost::numeric::ublas::matrix<float> newPoint = boost::numeric::ublas::prod(translation, point);
+
+	return Point(newPoint(0, 0), newPoint(1, 0));
+}
+
+void ScaleAll(float x, float y){
+	for (int i = 0; i < polygons.size(); i++){
+		std::vector<Point> currentPoints = polygons[i].get_points();
+		for (int j = 0; j < polygons[i].get_points().size(); j++){
+			currentPoints[j] = scale(currentPoints[j], x, y);
+		}
+		polygons[i].set_points(currentPoints);
+	}
+
+}
+
+#pragma endregion
+
 #pragma region Join
 
 void joinC0(int icurve1, int icurve2)
@@ -363,97 +404,6 @@ void openWindow(){
 	glClearColor(1, 1, 1, 0);
 
 	glutMainLoop();                         //listens for events
-}
-/*
-int main(int argc, char* argv[]){
-glutInit(&argc, argv);
-openWindow();
-openWindow();
-return 0;
-}*/
-
-#pragma endregion
-
-#pragma region Transformation
-
-void ScaleMatrix9(float* matrix, float x, float y, float z){
-	// Matrice de scaling
-	// x       0       0     
-	// 0       y       0      
-	// 0       0       z      
-	//float cMatrix[9];
-	memset(matrix, 0, sizeof(float));
-	matrix[0] = x;
-	matrix[4] = y;
-	matrix[8] = z;
-}
-
-void ScaleMatrix16(float* matrix, float x, float y, float z){
-	// Matrice de scaling
-	// x       0       0      0
-	// 0       y       0      0
-	// 0       0       z      0
-	// 0	   0       0      1
-	//float cMatrix[9];
-	memset(matrix, 0, sizeof(float));
-	matrix[0] = x;
-	matrix[5] = y;
-	matrix[9] = z;
-	matrix[15] = 1.0f;
-}
-
-void MultiplyVectorAndMatrix(float* matrix, float* vector, float* result){
-
-	for (int i = 0; i<3; i++){
-		result[i] = 0;
-	}
-	/*
-	for (int i = 0; i<3; i++){
-	for (int j = 0; j<3; j++){
-	c[i] += (matrix[i+j] * vector[j]);
-	}
-	}*/
-}
-
-void TranslateAll(float x, float y){
-	for (int i = 0; i < polygons.size(); i++){
-		std::vector<Point> currentPoints = polygons[i].get_points();
-		for (int j = 0; j < polygons[i].get_points().size(); j++){
-			//currentPoints[j] = currentPoints[j] * matrixScale;
-			//make a vector of 3 elements from the current point and multiply it with the scale matri
-			currentPoints[j] = translate(currentPoints[j], x, y);
-		}
-		polygons[i].set_points(currentPoints);
-	}
-
-}
-
-Point scale(Point a, float sX, float sY)
-{
-	boost::numeric::ublas::matrix<float> translation = boost::numeric::ublas::identity_matrix<float>(2);
-	translation(0, 0) = sX;
-	translation(1, 1) = sY;
-
-	boost::numeric::ublas::matrix<float> point = boost::numeric::ublas::scalar_matrix<float>(2, 1);
-	point(0, 0) = a.x_get();
-	point(1, 0) = a.y_get();
-
-	boost::numeric::ublas::matrix<float> newPoint = boost::numeric::ublas::prod(translation, point);
-
-	return Point(newPoint(0, 0), newPoint(1, 0));
-}
-
-void ScaleAll(float x, float y){
-	for (int i = 0; i < polygons.size(); i++){
-		std::vector<Point> currentPoints = polygons[i].get_points();
-		for (int j = 0; j < polygons[i].get_points().size(); j++){
-			//currentPoints[j] = currentPoints[j] * matrixScale;
-			//make a vector of 3 elements from the current point and multiply it with the scale matri
-			currentPoints[j] = scale(currentPoints[j], x, y);
-		}
-		polygons[i].set_points(currentPoints);
-	}
-
 }
 
 #pragma endregion
