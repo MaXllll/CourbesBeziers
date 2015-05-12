@@ -54,7 +54,10 @@ float pick[3];
 
 //Bit Mode , if 0 the user can add new points, if 1 the user can move existing points 
 bool mode = 1;
-
+// Bit Select/Move
+bool select_move = 0;
+int sp_indexPoly = 0;
+int sp_indexPoint = 0;
 
 #pragma region Utils
 float calculateSlope(Point a, Point b)
@@ -326,6 +329,30 @@ void MovePoint(int x, int y){
 
 	Point p(new_x, new_y);
 
+	float chosenMaxDistance = 0.25;
+	for (int i = 0; i < polygons.size(); i++){
+		std::vector<Point> currentPoints = polygons[currentPolygon].get_points();
+		for (int j = 0; j < polygons[i].get_points().size(); j++){
+			//currentPoints[j];
+			std::cout << "Hello" << std::endl;
+			// distance between two points
+			float distance = sqrt((p.x_get() - currentPoints[j].x_get())*(p.x_get() - currentPoints[j].x_get()) + (p.y_get() - currentPoints[j].y_get())*(p.y_get() - currentPoints[j].y_get()));
+			if (chosenMaxDistance > distance){
+				sp_indexPoly = i;
+				sp_indexPoint = j;
+				break;
+			}
+		}
+	}
+}
+
+void SelectPoint(int x, int y){
+	float new_x = convertViewportToOpenGLCoordinate(x / (float)glutGet(GLUT_WINDOW_WIDTH));
+
+	float new_y = -convertViewportToOpenGLCoordinate(y / (float)glutGet(GLUT_WINDOW_HEIGHT));
+
+	Point p(new_x, new_y);
+	/*
 	float chosenMaxDistance = 0.50;
 	for (int i = 0; i < polygons.size(); i++){
 		std::vector<Point> currentPoints = polygons[currentPolygon].get_points();
@@ -335,13 +362,16 @@ void MovePoint(int x, int y){
 			// distance between two points
 			float distance = sqrt((p.x_get() - currentPoints[j].x_get())*(p.x_get() - currentPoints[j].x_get()) + (p.y_get() - currentPoints[j].y_get())*(p.y_get() - currentPoints[j].y_get()));
 			std::cout << distance << std::endl;
-			if ( chosenMaxDistance > distance ){
+			if (chosenMaxDistance > distance){
 				currentPoints[j] = p;
 				polygons[i].set_points(currentPoints);
 				break;
 			}
 		}
-	}
+	}*/
+	std::vector<Point> currentPoints = polygons[sp_indexPoly].get_points();
+	currentPoints[sp_indexPoint] = p;
+	polygons[sp_indexPoly].set_points(currentPoints);
 }
 
 void MouseButton(int button, int state, int x, int y)
@@ -354,7 +384,14 @@ void MouseButton(int button, int state, int x, int y)
 				AddPoint(x,y);
 			}
 			else{
-				MovePoint(x,y);
+				if (select_move){
+					SelectPoint(x, y);
+					select_move = !select_move;
+				}
+				else{
+					MovePoint(x, y);
+					select_move = !select_move;
+				}
 			}
 		}
 	}
