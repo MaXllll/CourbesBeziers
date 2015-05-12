@@ -34,8 +34,6 @@ int pas = 20;
 //Bezier
 std::vector<std::vector<Point>> beziers;
 
-//Spline
-std::vector<Point> splines;
 
 Window window;
 
@@ -118,6 +116,10 @@ std::vector<Point> CalculateBezier(std::vector<Point> polygon)
 
 std::vector<float> nodalVector;
 
+std::vector<Point> splines;
+
+std::vector<Point> controlPolygons;
+
 Point baryCentre(Point p1, Point p2, float k)
 {
 	float x = (1.f - k) * p1.x_get() + k * p2.x_get();
@@ -134,6 +136,7 @@ void CalculateSplines()
 	nodalVector.push_back((1.f / 3.f));
 
 	splines.clear();
+	controlPolygons.clear();
 	if (polygons[0].get_points().size() > 3)
 	{
 		int size = polygons[0].get_points().size();
@@ -160,6 +163,10 @@ void CalculateSplines()
 				splines.insert(splines.end(), bezier.begin(), bezier.end());
 
 				newBezierPoint = r0p1;
+
+				//Filling control points polygon
+				controlPolygons.push_back(r0p0);
+				controlPolygons.push_back(r0p1);
 			}
 			else {
 				controlPoints.push_back(startBezier);
@@ -174,6 +181,10 @@ void CalculateSplines()
 				splines.insert(splines.end(), bezier.begin(), bezier.end());
 
 				newBezierPoint = r0p1;
+
+				//Filling control points polygon
+				controlPolygons.push_back(r1p0);
+				controlPolygons.push_back(r0p1);
 			}
 
 			if (i == size - 3)
@@ -185,6 +196,9 @@ void CalculateSplines()
 
 				std::vector<Point> bezier = CalculateBezier(controlPoints);
 				splines.insert(splines.end(), bezier.begin(), bezier.end());
+
+				//Filling control points polygon
+				controlPolygons.push_back(newBezierPoint);
 			}
 		}
 	}
@@ -409,7 +423,7 @@ void DrawPolygon()
 	}
 
 	//Draw Spline
-	//glColor3d((float)(255.f / 255.f), (float)(94.f / 255.f), (float)(0.f / 255.f));
+	glColor3d((float)(255.f / 255.f), (float)(94.f / 255.f), (float)(0.f / 255.f));
 	glColor3d(pick[1], pick[0], pick[2]);
 	/*for (size_t i = 0; i < beziers.size(); ++i)
 	{*/
@@ -420,6 +434,17 @@ void DrawPolygon()
 	}
 	glEnd();
 	//}
+
+	//Draw Control Polygons
+		glBegin(GL_LINE_STRIP);
+	for (size_t i = 0; i < controlPolygons.size(); i += 1)
+	{
+		glVertex2f(controlPolygons[i].x_get(), controlPolygons[i].y_get());
+		//glVertex2f(controlPolygons[i+1].x_get(), controlPolygons[i+1].y_get());
+	}
+		glEnd();
+
+	std::cout << controlPolygons.size() << std::endl;
 }
 
 void selectDraw(int selection) {
@@ -488,9 +513,6 @@ static void special(int k, int x, int y) {
 	glutPostRedisplay();
 }
 
-
-
-
 void renderScene()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -508,7 +530,6 @@ void renderScene()
 
 	glutSwapBuffers();
 }
-
 
 int main(int argc, char **argv) {
 
