@@ -84,8 +84,6 @@ float convertViewportToOpenGLCoordinate(float x)
 
 Point translate(Point a, float diffX, float diffY)
 {
-
-
 	boost::numeric::ublas::matrix<float> translation = boost::numeric::ublas::identity_matrix<float>(3);
 	translation(0, 2) = diffX;
 	translation(1, 2) = diffY;
@@ -412,18 +410,15 @@ void MultiplyVectorAndMatrix(float* matrix, float* vector, float* result){
 	}*/
 }
 
-void Scale(){
-
+void TranslateAll(float x, float y){
 	for (int i = 0; i < polygons.size(); i++){
 		std::vector<Point> currentPoints = polygons[i].get_points();
-		float matrixScale[16];
-		ScaleMatrix16(matrixScale, 2, 2, 2);
 		for (int j = 0; j < polygons[i].get_points().size(); j++){
 			//currentPoints[j] = currentPoints[j] * matrixScale;
-			//make a vector of 3 elements from the current point and multiply it with the scale matrix
-			float vectorCoordinates[4] = { currentPoints[j].x_get(), currentPoints[j].y_get(), 1, 1 };
-
+			//make a vector of 3 elements from the current point and multiply it with the scale matri
+			currentPoints[j] = translate(currentPoints[j], x, y);
 		}
+		polygons[i].set_points(currentPoints);
 	}
 
 }
@@ -558,7 +553,20 @@ void keyPressed(unsigned char key, int x, int y)
 		openWindow();
 	}
 	else if (key == 'e'){
+		std::cout << "trololozd" << std::endl;
 		changemodeEdit();
+	}
+	else if (key == 'j'){
+		TranslateAll(0,-0.1);
+	}
+	else if (key == 'u'){
+		TranslateAll(0, 0.1);
+	}
+	else if (key == 'h'){
+		TranslateAll(-0.1, 0);
+	}
+	else if (key == 'k'){
+		TranslateAll(0.1,0);
 	}
 }
 
