@@ -236,6 +236,7 @@ void mouse(int button, int state, int x, int y){
 	cout << "pick G: " << pick[0] << "\n";
 	cout << "pick B: " << pick[2] << "\n";
 	glutPostRedisplay();
+	glutHideWindow();
 }
 
 
