@@ -39,7 +39,7 @@ Window window;
 
 //Menu indentifier
 static int modify = 1;
-static int drawMode = 1;
+static int drawmodeEdit = 1;
 
 
 // Color picker attributes
@@ -50,6 +50,12 @@ int i = 0, mousex, mousey;
 //current colors
 float pick[3];
 
+//Bit modeEdit , if 0 the user can add new points, if 1 the user can move existing points 
+bool modeEdit = 1;
+// Bit Select/Move
+bool select_move = 0;
+int sp_indexPoly = -1;
+int sp_indexPoint = -1;
 
 #pragma region Utils
 float calculateSlope(Point a, Point b)
@@ -324,23 +330,68 @@ void clearAll()
 	beziers.push_back(std::vector<Point>());
 }
 
+void AddPoint(int x, int y){
+	float new_x = convertViewportToOpenGLCoordinate(x / (float)glutGet(GLUT_WINDOW_WIDTH));
+
+	float new_y = -convertViewportToOpenGLCoordinate(y / (float)glutGet(GLUT_WINDOW_HEIGHT));
+
+	Point p(new_x, new_y);
+
+	if (drawmodeEdit)
+		polygons[currentPolygon].addPoint(p);
+	else
+		window.add_point(p);
+}
+
+void SelectPoint(int x, int y){
+	float new_x = convertViewportToOpenGLCoordinate(x / (float)glutGet(GLUT_WINDOW_WIDTH));
+
+	float new_y = -convertViewportToOpenGLCoordinate(y / (float)glutGet(GLUT_WINDOW_HEIGHT));
+
+	Point p(new_x, new_y);
+
+	float chosenMaxDistance = 0.15;
+	for (int i = 0; i < polygons.size(); i++){
+		std::vector<Point> currentPoints = polygons[i].get_points();
+		for (int j = 0; j < polygons[i].get_points().size(); j++){
+			//currentPoints[j];
+			std::cout << "Hello" << std::endl;
+			// distance between two points
+			float distance = sqrt((p.x_get() - currentPoints[j].x_get())*(p.x_get() - currentPoints[j].x_get()) + (p.y_get() - currentPoints[j].y_get())*(p.y_get() - currentPoints[j].y_get()));
+			if (chosenMaxDistance > distance){
+				sp_indexPoly = i;
+				sp_indexPoint = j;
+				break;
+			}
+		}
+	}
+}
+
+void MovePoint(int x, int y){
+	if (!modeEdit && sp_indexPoint != -1){
+		float new_x = convertViewportToOpenGLCoordinate(x / (float)glutGet(GLUT_WINDOW_WIDTH));
+		float new_y = -convertViewportToOpenGLCoordinate(y / (float)glutGet(GLUT_WINDOW_HEIGHT));
+		Point p(new_x, new_y);
+		std::vector<Point> currentPoints = polygons[sp_indexPoly].get_points();
+		currentPoints[sp_indexPoint] = p;
+		polygons[sp_indexPoly].set_points(currentPoints);
+	}
+}
+
 void MouseButton(int button, int state, int x, int y)
 {
+	sp_indexPoly = -1;
+	sp_indexPoint = -1;
 	if (button == GLUT_LEFT_BUTTON)
 	{
 		if (state == GLUT_DOWN)
 		{
-			float new_x = convertViewportToOpenGLCoordinate(x / (float)glutGet(GLUT_WINDOW_WIDTH));
-
-			float new_y = -convertViewportToOpenGLCoordinate(y / (float)glutGet(GLUT_WINDOW_HEIGHT));
-
-			Point p(new_x, new_y);
-
-			if (drawMode)
-				polygons[currentPolygon].addPoint(p);
-			else
-				window.add_point(p);
-
+			if (modeEdit){
+				AddPoint(x,y);
+			}
+			else{
+				SelectPoint(x, y);
+			}
 		}
 	}
 	else if (button == GLUT_RIGHT_BUTTON)
@@ -354,6 +405,10 @@ void MouseButton(int button, int state, int x, int y)
 		}
 	}
 
+}
+
+void changemodeEdit(){
+	modeEdit = !modeEdit;
 }
 
 void keyPressed(unsigned char key, int x, int y)
@@ -387,6 +442,9 @@ void keyPressed(unsigned char key, int x, int y)
 	}
 	else if (key == 'p'){
 		openWindow();
+	}
+	else if (key == 'e'){
+		changemodeEdit();
 	}
 }
 
@@ -459,14 +517,14 @@ void selectDraw(int selection) {
 	CPolygon p;
 	switch (selection)
 	{
-	case 11: drawMode = 1;
+	case 11: drawmodeEdit = 1;
 		if (polygons[currentPolygon].get_points().size() > 2){
 			polygons.push_back(p);
 			beziers.push_back(std::vector<Point>());
 			currentPolygon++;
 		}
 		break;
-	case 12: drawMode = 0;
+	case 12: drawmodeEdit = 0;
 		break;
 	}
 	glutPostRedisplay();
@@ -556,6 +614,7 @@ int main(int argc, char **argv) {
 	// register callbacks
 	glutDisplayFunc(renderScene);
 	glutMouseFunc(MouseButton);
+	glutMotionFunc(MovePoint);
 	glutIdleFunc(update);
 	glutKeyboardFunc(keyPressed);
 
