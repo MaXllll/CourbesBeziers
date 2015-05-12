@@ -56,8 +56,8 @@ float pick[3];
 bool modeEdit = 1;
 // Bit Select/Move
 bool select_move = 0;
-int sp_indexPoly = 0;
-int sp_indexPoint = 0;
+int sp_indexPoly = -1;
+int sp_indexPoint = -1;
 
 #pragma region Utils
 float calculateSlope(Point a, Point b)
@@ -329,9 +329,9 @@ void SelectPoint(int x, int y){
 
 	Point p(new_x, new_y);
 
-	float chosenMaxDistance = 0.25;
+	float chosenMaxDistance = 0.15;
 	for (int i = 0; i < polygons.size(); i++){
-		std::vector<Point> currentPoints = polygons[currentPolygon].get_points();
+		std::vector<Point> currentPoints = polygons[i].get_points();
 		for (int j = 0; j < polygons[i].get_points().size(); j++){
 			//currentPoints[j];
 			std::cout << "Hello" << std::endl;
@@ -347,13 +347,10 @@ void SelectPoint(int x, int y){
 }
 
 void MovePoint(int x, int y){
-	if (!modeEdit){
+	if (!modeEdit && sp_indexPoint != -1){
 		float new_x = convertViewportToOpenGLCoordinate(x / (float)glutGet(GLUT_WINDOW_WIDTH));
-
 		float new_y = -convertViewportToOpenGLCoordinate(y / (float)glutGet(GLUT_WINDOW_HEIGHT));
-
 		Point p(new_x, new_y);
-
 		std::vector<Point> currentPoints = polygons[sp_indexPoly].get_points();
 		currentPoints[sp_indexPoint] = p;
 		polygons[sp_indexPoly].set_points(currentPoints);
@@ -362,6 +359,8 @@ void MovePoint(int x, int y){
 
 void MouseButton(int button, int state, int x, int y)
 {
+	sp_indexPoly = -1;
+	sp_indexPoint = -1;
 	if (button == GLUT_LEFT_BUTTON)
 	{
 		if (state == GLUT_DOWN)
