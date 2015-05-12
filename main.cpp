@@ -244,12 +244,12 @@ void joinC0(int icurve1, int icurve2)
 	std::cout << diffY << std::endl;
 
 	boost::numeric::ublas::matrix<float> translation = boost::numeric::ublas::identity_matrix<float>(3);
-	translation(0, 2) = diffX;
-	translation(1, 2) = diffY;
+	translation(0, 2) = 0.5f;
+	translation(1, 2) = 0.5f;
 
 	boost::numeric::ublas::matrix<float> point = boost::numeric::ublas::scalar_matrix<float>(3, 1);
-	point(0, 0) = diffX;
-	point(1, 0) = diffY;
+	point(0, 0) = 0.0f;
+	point(1, 0) = 0.0f;
 	
 	boost::numeric::ublas::matrix<float> newPoint = boost::numeric::ublas::prod(translation, point);
 	std::cout << newPoint(0, 0) << std::endl;
