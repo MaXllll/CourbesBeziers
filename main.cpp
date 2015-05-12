@@ -82,6 +82,23 @@ float convertViewportToOpenGLCoordinate(float x)
 	return (x * 2) - 1;
 }
 
+Point translate(Point a, float diffX, float diffY)
+{
+
+
+	boost::numeric::ublas::matrix<float> translation = boost::numeric::ublas::identity_matrix<float>(3);
+	translation(0, 2) = diffX;
+	translation(1, 2) = diffY;
+
+	boost::numeric::ublas::matrix<float> point = boost::numeric::ublas::scalar_matrix<float>(3, 1);
+	point(0, 0) = a.x_get();
+	point(1, 0) = a.y_get();
+
+	boost::numeric::ublas::matrix<float> newPoint = boost::numeric::ublas::prod(translation, point);
+
+	return Point(newPoint(0, 0), newPoint(1, 0));
+}
+
 #pragma endregion
 
 #pragma region Bézier
@@ -240,23 +257,22 @@ void joinC0(int icurve1, int icurve2)
 	float diffX = lastPoint.x_get() - firstPoint.x_get();
 	float diffY = lastPoint.y_get() - firstPoint.y_get();
 
-	std::cout << diffX << std::endl;
-	std::cout << diffY << std::endl;
+	for (size_t i = 0; i < curve2.size(); i++)
+	{
+		curve2[i] = translate(curve2[i], diffX, diffY);
+	}
 
-	boost::numeric::ublas::matrix<float> translation = boost::numeric::ublas::identity_matrix<float>(3);
-	translation(0, 2) = 0.5f;
-	translation(1, 2) = 0.5f;
-
-	boost::numeric::ublas::matrix<float> point = boost::numeric::ublas::scalar_matrix<float>(3, 1);
-	point(0, 0) = 0.0f;
-	point(1, 0) = 0.0f;
-	
-	boost::numeric::ublas::matrix<float> newPoint = boost::numeric::ublas::prod(translation, point);
-	std::cout << newPoint(0, 0) << std::endl;
-	std::cout << newPoint(1, 0) << std::endl;
-	std::cout << newPoint(2, 0) << std::endl;
-
+	polygons[icurve2].set_points(curve2);
 }
+
+//void joinC1(int icurve1, int icurve2)
+//{
+//	joinC1(icurve1, icurve2);
+//	std::vector<Point> curve1 = polygons[icurve1].get_points();
+//	std::vector<Point> curve2 = polygons[icurve2].get_points();
+//
+//	curve2[]
+//}
 
 
 #pragma endregion
