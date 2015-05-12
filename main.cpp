@@ -52,6 +52,9 @@ int i = 0, mousex, mousey;
 //current colors
 float pick[3];
 
+//Bit Mode , if 0 the user can add new points, if 1 the user can move existing points 
+bool mode = 1;
+
 
 #pragma region Utils
 float calculateSlope(Point a, Point b)
@@ -303,23 +306,56 @@ void clearAll()
 	beziers.push_back(std::vector<Point>());
 }
 
+void AddPoint(int x, int y){
+	float new_x = convertViewportToOpenGLCoordinate(x / (float)glutGet(GLUT_WINDOW_WIDTH));
+
+	float new_y = -convertViewportToOpenGLCoordinate(y / (float)glutGet(GLUT_WINDOW_HEIGHT));
+
+	Point p(new_x, new_y);
+
+	if (drawMode)
+		polygons[currentPolygon].addPoint(p);
+	else
+		window.add_point(p);
+}
+
+void MovePoint(int x, int y){
+	float new_x = convertViewportToOpenGLCoordinate(x / (float)glutGet(GLUT_WINDOW_WIDTH));
+
+	float new_y = -convertViewportToOpenGLCoordinate(y / (float)glutGet(GLUT_WINDOW_HEIGHT));
+
+	Point p(new_x, new_y);
+
+	float chosenMaxDistance = 0.50;
+	for (int i = 0; i < polygons.size(); i++){
+		std::vector<Point> currentPoints = polygons[currentPolygon].get_points();
+		for (int j = 0; j < polygons[i].get_points().size(); j++){
+			//currentPoints[j];
+			std::cout << "Hello" << std::endl;
+			// distance between two points
+			float distance = sqrt((p.x_get() - currentPoints[j].x_get())*(p.x_get() - currentPoints[j].x_get()) + (p.y_get() - currentPoints[j].y_get())*(p.y_get() - currentPoints[j].y_get()));
+			std::cout << distance << std::endl;
+			if ( chosenMaxDistance > distance ){
+				currentPoints[j] = p;
+				polygons[i].set_points(currentPoints);
+				break;
+			}
+		}
+	}
+}
+
 void MouseButton(int button, int state, int x, int y)
 {
 	if (button == GLUT_LEFT_BUTTON)
 	{
 		if (state == GLUT_DOWN)
 		{
-			float new_x = convertViewportToOpenGLCoordinate(x / (float)glutGet(GLUT_WINDOW_WIDTH));
-
-			float new_y = -convertViewportToOpenGLCoordinate(y / (float)glutGet(GLUT_WINDOW_HEIGHT));
-
-			Point p(new_x, new_y);
-
-			if (drawMode)
-				polygons[currentPolygon].addPoint(p);
-			else
-				window.add_point(p);
-
+			if (mode){
+				AddPoint(x,y);
+			}
+			else{
+				MovePoint(x,y);
+			}
 		}
 	}
 	else if (button == GLUT_RIGHT_BUTTON)
@@ -333,6 +369,10 @@ void MouseButton(int button, int state, int x, int y)
 		}
 	}
 
+}
+
+void changeMode(){
+	mode = !mode;
 }
 
 void keyPressed(unsigned char key, int x, int y)
@@ -366,6 +406,9 @@ void keyPressed(unsigned char key, int x, int y)
 	}
 	else if (key == 'p'){
 		openWindow();
+	}
+	else if (key == 'e'){
+		changeMode();
 	}
 }
 
