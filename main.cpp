@@ -13,6 +13,8 @@
 #include "Edge.h"
 #include "Node.h"
 
+#include <boost/numeric/ublas/matrix.hpp>
+
 
 #ifdef __APPLE__
 #include <GLUT/glut.h>
@@ -52,6 +54,9 @@ float pick[3];
 
 //Bit modeEdit , if 0 the user can add new points, if 1 the user can move existing points 
 bool modeEdit = 1;
+
+bool modeJoin = 0;
+
 // Bit Select/Move
 bool select_move = 0;
 int sp_indexPoly = -1;
@@ -216,6 +221,40 @@ void CalculateSplines()
 		}
 	}
 
+
+}
+
+
+#pragma endregion
+
+#pragma region Join
+
+void joinC0(int icurve1, int icurve2)
+{
+	std::vector<Point> curve1 = polygons[icurve1].get_points();
+	std::vector<Point> curve2 = polygons[icurve2].get_points();
+
+	Point lastPoint = curve1[curve1.size() - 1];
+	Point firstPoint = curve2[0];
+
+	float diffX = lastPoint.x_get() - firstPoint.x_get();
+	float diffY = lastPoint.y_get() - firstPoint.y_get();
+
+	std::cout << diffX << std::endl;
+	std::cout << diffY << std::endl;
+
+	boost::numeric::ublas::matrix<float> translation = boost::numeric::ublas::identity_matrix<float>(3);
+	translation(0, 2) = diffX;
+	translation(1, 2) = diffY;
+
+	boost::numeric::ublas::matrix<float> point = boost::numeric::ublas::scalar_matrix<float>(3, 1);
+	point(0, 0) = diffX;
+	point(1, 0) = diffY;
+	
+	boost::numeric::ublas::matrix<float> newPoint = boost::numeric::ublas::prod(translation, point);
+	std::cout << newPoint(0, 0) << std::endl;
+	std::cout << newPoint(1, 0) << std::endl;
+	std::cout << newPoint(2, 0) << std::endl;
 
 }
 
@@ -530,15 +569,17 @@ void selectDraw(int selection) {
 	glutPostRedisplay();
 }
 
-void selectModify(int selection) {
-	std::vector<CPolygon> p;
+void selectJoin(int selection) {
 	switch (selection) {
 	case 1:
-		//p = windowing(polygons, window);
-		polygons = p;
+		modeJoin = 1;
+		joinC0(0, 1);
 		break;
 	case 2:
-		//FillingLCALoop(polygons);
+		modeJoin = 2;
+		break;
+	case 3:
+		modeJoin = 3;
 		break;
 	case 0:
 		exit(0);
@@ -620,12 +661,13 @@ int main(int argc, char **argv) {
 
 	int drawMenu = glutCreateMenu(selectDraw);
 	glutAddMenuEntry("Bézier /Spline", 11);
-	int modifyMenu = glutCreateMenu(selectModify);
-	glutAddMenuEntry("Windowing", 1);
-	glutAddMenuEntry("Filling", 2);
+	int joinMenu = glutCreateMenu(selectJoin);
+	glutAddMenuEntry("C0", 1);
+	glutAddMenuEntry("C1", 2);
+	glutAddMenuEntry("C2", 3);
 	glutCreateMenu(select);
 	glutAddSubMenu("Draw", drawMenu);
-	glutAddSubMenu("Modify", modifyMenu);
+	glutAddSubMenu("Join", joinMenu);
 	glutAddMenuEntry("Choose colors", 3);
 	glutAddMenuEntry("Clear", 4);
 	glutAddMenuEntry("Quitter", 0);
