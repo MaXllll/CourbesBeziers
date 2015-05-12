@@ -355,6 +355,65 @@ return 0;
 
 #pragma endregion
 
+#pragma region Transformation
+
+void ScaleMatrix9(float* matrix, float x, float y, float z){
+	// Matrice de scaling
+	// x       0       0     
+	// 0       y       0      
+	// 0       0       z      
+	//float cMatrix[9];
+	memset(matrix, 0, sizeof(float));
+	matrix[0] = x;
+	matrix[4] = y;
+	matrix[8] = z;
+}
+
+void ScaleMatrix16(float* matrix, float x, float y, float z){
+	// Matrice de scaling
+	// x       0       0      0
+	// 0       y       0      0
+	// 0       0       z      0
+	// 0	   0       0      1
+	//float cMatrix[9];
+	memset(matrix, 0, sizeof(float));
+	matrix[0] = x;
+	matrix[5] = y;
+	matrix[9] = z;
+	matrix[15] = 1.0f;
+}
+
+void MultiplyVectorAndMatrix(float* matrix, float* vector, float* result){
+
+	for (int i = 0; i<3; i++){
+		result[i] = 0;
+	}
+	/*
+	for (int i = 0; i<3; i++){
+	for (int j = 0; j<3; j++){
+	c[i] += (matrix[i+j] * vector[j]);
+	}
+	}*/
+}
+
+void Scale(){
+
+	for (int i = 0; i < polygons.size(); i++){
+		std::vector<Point> currentPoints = polygons[i].get_points();
+		float matrixScale[16];
+		ScaleMatrix16(matrixScale, 2, 2, 2);
+		for (int j = 0; j < polygons[i].get_points().size(); j++){
+			//currentPoints[j] = currentPoints[j] * matrixScale;
+			//make a vector of 3 elements from the current point and multiply it with the scale matrix
+			float vectorCoordinates[4] = { currentPoints[j].x_get(), currentPoints[j].y_get(), 1, 1 };
+
+		}
+	}
+
+}
+
+#pragma endregion
+
 #pragma mark GLUT
 #pragma region GLUT
 
