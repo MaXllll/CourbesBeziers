@@ -5,6 +5,7 @@
 #include <fstream>
 #include <numeric>
 #include <limits>
+#include <math.h>
 
 #include "Point.h"
 #include "CPolygon.h"
@@ -278,18 +279,6 @@ Point barycentreCurve(CPolygon curve){
 
 Point scale(Point a, float diffX, float diffY, float sX, float sY)
 {
-	/*
-	Point a(0.50, 0.50);
-	diffY = 0.50;
-	diffX = 0.50;
-	*/
-	std::cout << "Before" << std::endl;
-	std::cout << a.x_get() << std::endl;
-	std::cout << a.y_get() << std::endl;
-	std::cout << diffX << std::endl;
-	std::cout << diffY << std::endl;
-
-
 	boost::numeric::ublas::matrix<float> translation0 = boost::numeric::ublas::identity_matrix<float>(3);
 	translation0(0, 2) = -diffX;
 	translation0(1, 2) = -diffY;
@@ -312,9 +301,6 @@ Point scale(Point a, float diffX, float diffY, float sX, float sY)
 	newPoint = boost::numeric::ublas::prod(scale, newPoint);
 	newPoint = boost::numeric::ublas::prod(translation1, newPoint);
 	
-	std::cout << "After" << std::endl;
-	std::cout << newPoint(0,0) << std::endl;
-	std::cout << newPoint(1, 0) << std::endl;
 	return Point(newPoint(0, 0), newPoint(1, 0));
 }
 
@@ -338,6 +324,71 @@ void ScaleAll(float x, float y){
 		polygons[i].set_points(currentPoints);
 	}
 
+}
+
+Point rotate(Point a, float diffX, float diffY, float angle)
+{
+	boost::numeric::ublas::matrix<float> translation0 = boost::numeric::ublas::identity_matrix<float>(3);
+	translation0(0, 2) = -diffX;
+	translation0(1, 2) = -diffY;
+
+	boost::numeric::ublas::matrix<float> scale = boost::numeric::ublas::identity_matrix<float>(3);
+	scale(0, 0) = cos(angle);
+	scale(1, 0) = sin(angle);
+	scale(0, 1) = -sin(angle);
+	scale(1, 1) = cos(angle);
+
+	boost::numeric::ublas::matrix<float> translation1 = boost::numeric::ublas::identity_matrix<float>(3);
+	translation1(0, 2) = diffX;
+	translation1(1, 2) = diffY;
+
+	boost::numeric::ublas::matrix<float> point = boost::numeric::ublas::scalar_matrix<float>(3, 1);
+	point(0, 0) = a.x_get();
+	point(1, 0) = a.y_get();
+
+
+	boost::numeric::ublas::matrix<float> newPoint = boost::numeric::ublas::prod(translation0, point);
+	//boost::numeric::ublas::matrix<float> newPoint = boost::numeric::ublas::prod(translation1, point);
+	newPoint = boost::numeric::ublas::prod(scale, newPoint);
+	newPoint = boost::numeric::ublas::prod(translation1, newPoint);
+
+	return Point(newPoint(0, 0), newPoint(1, 0));
+}
+
+void RotateAll(float angle){
+	std::cout << sp_indexPoly << std::endl;
+	if (sp_indexPoly != -1){
+		Point worldCenter(0, 0);
+		Point barycentre = barycentreCurve(polygons[i]);
+		std::vector<Point> currentPoints = polygons[sp_indexPoly].get_points();
+		float diffX = barycentre.x_get() - worldCenter.x_get();
+		float diffY = barycentre.y_get() - worldCenter.y_get();
+
+		for (int j = 0; j < polygons[i].get_points().size(); j++){
+			currentPoints[j] = rotate(currentPoints[j], diffX, diffY, angle);
+		}
+		polygons[i].set_points(currentPoints);
+	}
+	else{
+		Point worldCenter(0, 0);
+		for (int i = 0; i < polygons.size(); i++){
+			/*
+			Center of scale is the first point
+			std::vector<Point> currentPoints = polygons[i].get_points();
+			float diffX = currentPoints[0].x_get() - worldCenter.x_get();
+			float diffY = currentPoints[0].y_get() - worldCenter.y_get();
+			*/
+			Point barycentre = barycentreCurve(polygons[i]);
+			std::vector<Point> currentPoints = polygons[i].get_points();
+			float diffX = barycentre.x_get() - worldCenter.x_get();
+			float diffY = barycentre.y_get() - worldCenter.y_get();
+
+			for (int j = 0; j < polygons[i].get_points().size(); j++){
+				currentPoints[j] = rotate(currentPoints[j], diffX, diffY, angle);
+			}
+			polygons[i].set_points(currentPoints);
+		}
+	}
 }
 
 #pragma endregion
@@ -538,12 +589,12 @@ void SelectPoint(int x, int y){
 		std::vector<Point> currentPoints = polygons[i].get_points();
 		for (int j = 0; j < polygons[i].get_points().size(); j++){
 			//currentPoints[j];
-			std::cout << "Hello" << std::endl;
 			// distance between two points
 			float distance = sqrt((p.x_get() - currentPoints[j].x_get())*(p.x_get() - currentPoints[j].x_get()) + (p.y_get() - currentPoints[j].y_get())*(p.y_get() - currentPoints[j].y_get()));
 			if (chosenMaxDistance > distance){
 				sp_indexPoly = i;
 				sp_indexPoint = j;
+				std::cout << "Poly : " << sp_indexPoly << std::endl;
 				break;
 			}
 		}
@@ -563,6 +614,7 @@ void MovePoint(int x, int y){
 
 void MouseButton(int button, int state, int x, int y)
 {
+	std::cout << "MouseButton : " << std::endl;
 	sp_indexPoly = -1;
 	sp_indexPoint = -1;
 	if (button == GLUT_LEFT_BUTTON)
@@ -656,6 +708,20 @@ void keyPressed(unsigned char key, int x, int y)
 		}
 		else if (key == 'k'){
 			ScaleAll(0.8, 1);
+		}
+	}
+	else if (transfMode == ROTATE){
+		if (key == 'k'){
+			RotateAll(90);
+		}
+		else if (key == 'u'){
+			RotateAll(180);
+		}
+		else if (key == 'j'){
+			RotateAll(-180);
+		}
+		else if (key == 'h'){
+			RotateAll(-90);
 		}
 	}
 }
