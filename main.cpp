@@ -363,15 +363,52 @@ void joinC0(int icurve1, int icurve2)
 	polygons[icurve2].set_points(curve2);
 }
 
-//void joinC1(int icurve1, int icurve2)
-//{
-//	joinC1(icurve1, icurve2);
-//	std::vector<Point> curve1 = polygons[icurve1].get_points();
-//	std::vector<Point> curve2 = polygons[icurve2].get_points();
-//
-//	curve2[]
-//}
+void joinC1(int icurve1, int icurve2)
+{
+	joinC0(icurve1, icurve2);
+	std::vector<Point> curve1 = polygons[icurve1].get_points();
+	std::vector<Point> curve2 = polygons[icurve2].get_points();
 
+	Point beforeLastPoint = curve1[curve1.size() - 2];
+	Point lastPoint = curve1[curve1.size() - 1];
+
+	Point firstPoint = curve2[0];
+	Point secondPoint = curve2[1];
+
+	float diffX = lastPoint.x_get() - beforeLastPoint.x_get();
+	float diffY = lastPoint.y_get() - beforeLastPoint.y_get();
+
+	float diffX2 = secondPoint.x_get() - firstPoint.x_get();
+	float diffY2 = secondPoint.y_get() - firstPoint.y_get();
+
+	float scalar = diffX * diffX2 + diffY * diffY2;
+
+	float qX = diffX / scalar;
+	float qY = diffY / scalar;
+	std::cout << qX << std::endl;
+	std::cout << qY << std::endl;
+
+	curve2[1] = Point(lastPoint.x_get() + (diffX / qX), lastPoint.y_get() + (diffY / qX));
+
+	polygons[icurve2].set_points(curve2);
+}
+
+void joinC2(int icurve1, int icurve2)
+{
+	joinC0(icurve1, icurve2);
+	std::vector<Point> curve1 = polygons[icurve1].get_points();
+	std::vector<Point> curve2 = polygons[icurve2].get_points();
+
+	Point beforeLastPoint = curve1[curve1.size() - 2];
+	Point lastPoint = curve1[curve1.size() - 1];
+
+	float diffX = lastPoint.x_get() - beforeLastPoint.x_get();
+	float diffY = lastPoint.y_get() - beforeLastPoint.y_get();
+
+	curve2[1] = Point(lastPoint.x_get() + diffX, lastPoint.y_get() + diffY);
+
+	polygons[icurve2].set_points(curve2);
+}
 
 #pragma endregion
 
@@ -713,9 +750,11 @@ void selectJoin(int selection) {
 		break;
 	case 2:
 		modeJoin = 2;
+		joinC1(0, 1);
 		break;
 	case 3:
 		modeJoin = 3;
+		joinC2(0, 1);
 		break;
 	case 0:
 		exit(0);
