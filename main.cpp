@@ -25,6 +25,10 @@
 #include <GL/glu.h>
 #endif
 
+#define TRANSLATE 5
+#define SCALE 6
+#define ROTATE 7 
+
 float height = 640.0f;
 float width = 640.0f;
 
@@ -61,6 +65,7 @@ bool modeJoin = 0;
 bool select_move = 0;
 int sp_indexPoly = -1;
 int sp_indexPoint = -1;
+int transfMode = TRANSLATE;
 
 #pragma region Utils
 float calculateSlope(Point a, Point b)
@@ -80,23 +85,6 @@ float convertOpenGLToViewportCoordinate(float x)
 float convertViewportToOpenGLCoordinate(float x)
 {
 	return (x * 2) - 1;
-}
-
-Point translate(Point a, float diffX, float diffY)
-{
-
-
-	boost::numeric::ublas::matrix<float> translation = boost::numeric::ublas::identity_matrix<float>(3);
-	translation(0, 2) = diffX;
-	translation(1, 2) = diffY;
-
-	boost::numeric::ublas::matrix<float> point = boost::numeric::ublas::scalar_matrix<float>(3, 1);
-	point(0, 0) = a.x_get();
-	point(1, 0) = a.y_get();
-
-	boost::numeric::ublas::matrix<float> newPoint = boost::numeric::ublas::prod(translation, point);
-
-	return Point(newPoint(0, 0), newPoint(1, 0));
 }
 
 #pragma endregion
@@ -241,6 +229,62 @@ void CalculateSplines()
 
 }
 
+
+#pragma endregion
+
+#pragma region TRANSFORMATION
+
+Point translate(Point a, float diffX, float diffY)
+{
+	boost::numeric::ublas::matrix<float> translation = boost::numeric::ublas::identity_matrix<float>(3);
+	translation(0, 2) = diffX;
+	translation(1, 2) = diffY;
+
+	boost::numeric::ublas::matrix<float> point = boost::numeric::ublas::scalar_matrix<float>(3, 1);
+	point(0, 0) = a.x_get();
+	point(1, 0) = a.y_get();
+
+	boost::numeric::ublas::matrix<float> newPoint = boost::numeric::ublas::prod(translation, point);
+
+	return Point(newPoint(0, 0), newPoint(1, 0));
+}
+
+void TranslateAll(float x, float y){
+	for (int i = 0; i < polygons.size(); i++){
+		std::vector<Point> currentPoints = polygons[i].get_points();
+		for (int j = 0; j < polygons[i].get_points().size(); j++){
+			currentPoints[j] = translate(currentPoints[j], x, y);
+		}
+		polygons[i].set_points(currentPoints);
+	}
+
+}
+
+Point scale(Point a, float sX, float sY)
+{
+	boost::numeric::ublas::matrix<float> translation = boost::numeric::ublas::identity_matrix<float>(2);
+	translation(0, 0) = sX;
+	translation(1, 1) = sY;
+
+	boost::numeric::ublas::matrix<float> point = boost::numeric::ublas::scalar_matrix<float>(2, 1);
+	point(0, 0) = a.x_get();
+	point(1, 0) = a.y_get();
+
+	boost::numeric::ublas::matrix<float> newPoint = boost::numeric::ublas::prod(translation, point);
+
+	return Point(newPoint(0, 0), newPoint(1, 0));
+}
+
+void ScaleAll(float x, float y){
+	for (int i = 0; i < polygons.size(); i++){
+		std::vector<Point> currentPoints = polygons[i].get_points();
+		for (int j = 0; j < polygons[i].get_points().size(); j++){
+			currentPoints[j] = scale(currentPoints[j], x, y);
+		}
+		polygons[i].set_points(currentPoints);
+	}
+
+}
 
 #pragma endregion
 
@@ -398,72 +442,6 @@ void openWindow(){
 
 	glutMainLoop();                         //listens for events
 }
-/*
-int main(int argc, char* argv[]){
-glutInit(&argc, argv);
-openWindow();
-openWindow();
-return 0;
-}*/
-
-#pragma endregion
-
-#pragma region Transformation
-
-void ScaleMatrix9(float* matrix, float x, float y, float z){
-	// Matrice de scaling
-	// x       0       0     
-	// 0       y       0      
-	// 0       0       z      
-	//float cMatrix[9];
-	memset(matrix, 0, sizeof(float));
-	matrix[0] = x;
-	matrix[4] = y;
-	matrix[8] = z;
-}
-
-void ScaleMatrix16(float* matrix, float x, float y, float z){
-	// Matrice de scaling
-	// x       0       0      0
-	// 0       y       0      0
-	// 0       0       z      0
-	// 0	   0       0      1
-	//float cMatrix[9];
-	memset(matrix, 0, sizeof(float));
-	matrix[0] = x;
-	matrix[5] = y;
-	matrix[9] = z;
-	matrix[15] = 1.0f;
-}
-
-void MultiplyVectorAndMatrix(float* matrix, float* vector, float* result){
-
-	for (int i = 0; i<3; i++){
-		result[i] = 0;
-	}
-	/*
-	for (int i = 0; i<3; i++){
-	for (int j = 0; j<3; j++){
-	c[i] += (matrix[i+j] * vector[j]);
-	}
-	}*/
-}
-
-void Scale(){
-
-	for (int i = 0; i < polygons.size(); i++){
-		std::vector<Point> currentPoints = polygons[i].get_points();
-		float matrixScale[16];
-		ScaleMatrix16(matrixScale, 2, 2, 2);
-		for (int j = 0; j < polygons[i].get_points().size(); j++){
-			//currentPoints[j] = currentPoints[j] * matrixScale;
-			//make a vector of 3 elements from the current point and multiply it with the scale matrix
-			float vectorCoordinates[4] = { currentPoints[j].x_get(), currentPoints[j].y_get(), 1, 1 };
-
-		}
-	}
-
-}
 
 #pragma endregion
 
@@ -595,7 +573,36 @@ void keyPressed(unsigned char key, int x, int y)
 		openWindow();
 	}
 	else if (key == 'e'){
+		std::cout << "trololozd" << std::endl;
 		changemodeEdit();
+	}
+	if (transfMode == TRANSLATE){
+	    if (key == 'j'){
+			TranslateAll(0,-0.1);
+		}
+		else if (key == 'u'){
+			TranslateAll(0, 0.1);
+		}
+		else if (key == 'h'){
+			TranslateAll(-0.1, 0);
+		}
+		else if (key == 'k'){
+			TranslateAll(0.1, 0);
+		}
+	}
+	else if (transfMode == SCALE){
+		if (key == 'j'){
+			ScaleAll(1, 0.8);
+		}
+		else if (key == 'u'){
+			ScaleAll(1, 1.2);
+		}
+		else if (key == 'h'){
+			ScaleAll(1.2, 1);
+		}
+		else if (key == 'k'){
+			ScaleAll(0.8, 1);
+		}
 	}
 }
 
@@ -701,6 +708,23 @@ void selectJoin(int selection) {
 	glutPostRedisplay();
 }
 
+void selectTransf(int selection){
+	switch (selection) {
+	case 1:
+		transfMode = TRANSLATE;
+		break;
+	case 2:
+		transfMode = SCALE;
+		break;
+	case 3:
+		transfMode = ROTATE;
+		break;
+	case 0:
+		exit(0);
+	}
+	glutPostRedisplay();
+}
+
 void select(int selection) {
 	switch (selection)
 	{
@@ -779,9 +803,14 @@ int main(int argc, char **argv) {
 	glutAddMenuEntry("C0", 1);
 	glutAddMenuEntry("C1", 2);
 	glutAddMenuEntry("C2", 3);
+	int transfMenu = glutCreateMenu(selectTransf);
+	glutAddMenuEntry("Translate", 1);
+	glutAddMenuEntry("Scale", 2);
+	glutAddMenuEntry("Rotate", 3);
 	glutCreateMenu(select);
 	glutAddSubMenu("Draw", drawMenu);
 	glutAddSubMenu("Join", joinMenu);
+	glutAddSubMenu("Transform", transfMenu);
 	glutAddMenuEntry("Choose colors", 3);
 	glutAddMenuEntry("Clear", 4);
 	glutAddMenuEntry("Quitter", 0);
