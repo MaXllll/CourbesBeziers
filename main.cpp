@@ -157,7 +157,7 @@ void CalculateSplines()
 
 	for (size_t j= 0; j < polygons.size(); j++)
 	{ 
-		if (polygons[j].get_points().size() > 3)
+		if (polygons[j].get_points().size() > 4)
 		{
 			int size = polygons[j].get_points().size();
 			Point newBezierPoint = Point();
@@ -344,14 +344,18 @@ void joinC2(int icurve1, int icurve2)
 	joinC0(icurve1, icurve2);
 	std::vector<Point> curve1 = polygons[icurve1].get_points();
 	std::vector<Point> curve2 = polygons[icurve2].get_points();
-
+	
+	Point beforeBeforeLastPoint = curve1[curve1.size() - 3];
 	Point beforeLastPoint = curve1[curve1.size() - 2];
 	Point lastPoint = curve1[curve1.size() - 1];
+
+	Point contructPoint = Point(beforeLastPoint.x_get() + (beforeLastPoint.x_get() - beforeBeforeLastPoint.x_get()), beforeLastPoint.y_get() + (beforeLastPoint.y_get() - beforeBeforeLastPoint.y_get()));
 
 	float diffX = lastPoint.x_get() - beforeLastPoint.x_get();
 	float diffY = lastPoint.y_get() - beforeLastPoint.y_get();
 
 	curve2[1] = Point(lastPoint.x_get() + diffX, lastPoint.y_get() + diffY);
+	curve2[2] = Point(curve2[1].x_get() + (curve2[1].x_get() - contructPoint.x_get()), curve2[1].y_get() + (curve2[1].y_get() - contructPoint.y_get()));
 
 	polygons[icurve2].set_points(curve2);
 }
