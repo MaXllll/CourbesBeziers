@@ -136,6 +136,7 @@ std::vector<std::vector<Point>> splines;
 
 std::vector<std::vector<Point>> controlPolygons;
 
+
 Point baryCentre(Point p1, Point p2, float k)
 {
 	float x = (1.f - k) * p1.x_get() + k * p2.x_get();
@@ -260,26 +261,79 @@ void TranslateAll(float x, float y){
 
 }
 
-Point scale(Point a, float sX, float sY)
-{
-	boost::numeric::ublas::matrix<float> translation = boost::numeric::ublas::identity_matrix<float>(2);
-	translation(0, 0) = sX;
-	translation(1, 1) = sY;
 
-	boost::numeric::ublas::matrix<float> point = boost::numeric::ublas::scalar_matrix<float>(2, 1);
+Point barycentreCurve(CPolygon curve){
+
+	std::vector<Point> currentPoints = curve.get_points();
+	Point barycentre;
+	int size = curve.get_points().size();
+	for (int j = 0; j < size; j++){
+		barycentre.x_set(barycentre.x_get() + currentPoints[j].x_get());
+		barycentre.y_set(barycentre.y_get() + currentPoints[j].y_get());
+	}
+	barycentre.x_set(barycentre.x_get()/size);
+	barycentre.y_set(barycentre.y_get() / size);
+	return barycentre;
+}
+
+Point scale(Point a, float diffX, float diffY, float sX, float sY)
+{
+	/*
+	Point a(0.50, 0.50);
+	diffY = 0.50;
+	diffX = 0.50;
+	*/
+	std::cout << "Before" << std::endl;
+	std::cout << a.x_get() << std::endl;
+	std::cout << a.y_get() << std::endl;
+	std::cout << diffX << std::endl;
+	std::cout << diffY << std::endl;
+
+
+	boost::numeric::ublas::matrix<float> translation0 = boost::numeric::ublas::identity_matrix<float>(3);
+	translation0(0, 2) = -diffX;
+	translation0(1, 2) = -diffY;
+
+	boost::numeric::ublas::matrix<float> scale = boost::numeric::ublas::identity_matrix<float>(3);
+	scale(0, 0) = sX;
+	scale(1, 1) = sY;
+
+	boost::numeric::ublas::matrix<float> translation1 = boost::numeric::ublas::identity_matrix<float>(3);
+	translation1(0, 2) = diffX;
+	translation1(1, 2) = diffY;
+
+	boost::numeric::ublas::matrix<float> point = boost::numeric::ublas::scalar_matrix<float>(3, 1);
 	point(0, 0) = a.x_get();
 	point(1, 0) = a.y_get();
 
-	boost::numeric::ublas::matrix<float> newPoint = boost::numeric::ublas::prod(translation, point);
 
+	boost::numeric::ublas::matrix<float> newPoint = boost::numeric::ublas::prod(translation0, point);
+	//boost::numeric::ublas::matrix<float> newPoint = boost::numeric::ublas::prod(translation1, point);
+	newPoint = boost::numeric::ublas::prod(scale, newPoint);
+	newPoint = boost::numeric::ublas::prod(translation1, newPoint);
+	
+	std::cout << "After" << std::endl;
+	std::cout << newPoint(0,0) << std::endl;
+	std::cout << newPoint(1, 0) << std::endl;
 	return Point(newPoint(0, 0), newPoint(1, 0));
 }
 
 void ScaleAll(float x, float y){
+	Point worldCenter(0, 0);
 	for (int i = 0; i < polygons.size(); i++){
+		/*
+		Center of scale is the first point
 		std::vector<Point> currentPoints = polygons[i].get_points();
+		float diffX = currentPoints[0].x_get() - worldCenter.x_get();
+		float diffY = currentPoints[0].y_get() - worldCenter.y_get();
+		*/
+		Point barycentre = barycentreCurve(polygons[i]);
+		std::vector<Point> currentPoints = polygons[i].get_points();
+		float diffX = barycentre.x_get() - worldCenter.x_get();
+		float diffY = barycentre.y_get() - worldCenter.y_get();
+
 		for (int j = 0; j < polygons[i].get_points().size(); j++){
-			currentPoints[j] = scale(currentPoints[j], x, y);
+			currentPoints[j] = scale(currentPoints[j], diffX, diffY, x, y);
 		}
 		polygons[i].set_points(currentPoints);
 	}
