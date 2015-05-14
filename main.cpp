@@ -30,8 +30,8 @@
 #define SCALE 6
 #define ROTATE 7 
 
-float height = 640.0f;
-float width = 640.0f;
+float height = 1000.0f;
+float width = 1000.0f;
 
 int currentPolygon = 0;
 std::vector<CPolygon> polygons;
@@ -55,8 +55,7 @@ static int drawmodeEdit = 1;
 
 int i = 0, mousex, mousey;
 //current colors
-float pick[3];
-
+float pick[3] = {(float)(153.0f / 255.f), (float)(255.f / 255.f), (float)(0.f / 255.f) };
 //Bit modeEdit , if 0 the user can add new points, if 1 the user can move existing points 
 bool modeEdit = 1;
 
@@ -770,7 +769,7 @@ void DrawPolygon()
 	}
 
 	//Draw Spline
-	glColor3d((float)(255.f / 255.f), (float)(94.f / 255.f), (float)(0.f / 255.f));
+	//glColor3d((float)(255.f / 255.f), (float)(94.f / 255.f), (float)(0.f / 255.f));
 	glColor3d(pick[1], pick[0], pick[2]);
 	for (size_t i = 0; i < splines.size(); ++i)
 	{
@@ -782,6 +781,7 @@ void DrawPolygon()
 		glEnd();
 	}
 
+	glColor3d(0, 0, 0);
 	//Draw Control Polygons
 	for (size_t i = 0; i < splines.size(); ++i)
 	{
